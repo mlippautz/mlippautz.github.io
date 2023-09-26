@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+<title></title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<script>
+
+async function run() {
+  const result = await performance.measureUserAgentSpecificMemory();
+  console.log(result);
+}
+
+document.addEventListener("DOMContentLoaded", run);
+
+</script>
+<body>
+
+<iframe width=640 height=480 src="https://www.google.com/search?igu=1"></iframe>
+
+</body>
+</html>
+

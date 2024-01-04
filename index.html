@@ -1,9 +1,13 @@
-<html>
-<head>
-<title>Michael Lippautz</title>
+<!DOCTYPE html>
+<html lang="en">
 
-<link href='https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'>
-<style>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width">
+  <meta name="description" content="Homepage of Michael Lippautz">
+  <title>Michael Lippautz</title>
+
+  <style>
 
 html {
   font-size: 14px;
@@ -28,76 +32,67 @@ a {
   text-decoration: underline;
 }
 
-ul.navigation {
-  white-space:normal;
-  list-style-type:none;
-  padding: 0px;
-  margin: 0px;
+footer {
+  font-size:small;
+  text-align: center;
 }
 
-ul.navigation li {
-  display:inline;
-  font-size:x-large;
-  margin-left: 10px;
+header > img {
+  border-radius:50%;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
 }
 
-ul.navigation li a:link {
-  color:gray;
-}
+  </style>
+  <script type="text/javascript">
 
-ul.navigation li a:visited {
-  color:gray;
-}
+  document.addEventListener("DOMContentLoaded", (event) => {
+    const lastModified = new Date(document.lastModified);
+    document.getElementById("last-modified").innerHTML = lastModified.toISOString().substring(0, 10);
+    document.getElementById("copy-end").innerHTML = lastModified.getUTCFullYear();
+  });
 
-ul.navigation li a:hover {
-  color:black;
-}
-
-ul.navigation li a:active {
-  color:black;
-}
-
-</style>
+  </script>
 </head>
-<body>
 
-<ul class="navigation">
-<li><a href="mailto:michael.lippautz+web@gmail.com"><i class="fa fa-envelope" aria-hidden="true"></i></a></li>
-<li><a href="https://twitter.com/mlippautz"><i class="fa fa-twitter" aria-hidden="true"></i></a></li>
-<li><a href="https://github.com/mlippautz"><i class="fa fa-github" aria-hidden="true"></i></a></li>
-</ul>
+<body >
 
-<p></p>
-<center>
-  <img src="./mike-dark.png" style="width:150px; border-radius:50%;">
-</center>
-<p></p>
+<header>
+  <img src="./mike-surf-dark.webp" class="header-image" width="150px" height="150px" alt="That's me, Michael.">
+  <p>
+Hi there!
+My name is <strong>Michael Lippautz</strong> and I am currently a software engineer at Google working on the high-performance JavaScript virtual machine <a href="https://developers.google.com/v8/">V8</a> as well as the <a href="https://en.wikipedia.org/wiki/Blink_(web_engine)">Blink rendering engine</a>.
+  </p>
+</header>
 
 <p>
-Hi there! My name is <strong>Michael Lippautz</strong> and I am currently a software engineer at Google working on the high-performance JavaScript virtual machine <a href="https://developers.google.com/v8/">V8</a> as well as the <a href="https://en.wikipedia.org/wiki/Blink_(web_engine)">Blink rendering engine</a>.
+The easiest way to reach me is via <a href="mailto:michael.lippautz+web@gmail.com">email</a>.
 </p>
 
-<p>
 I am especially interested in:
 </p>
-
 <ul>
-<li>Virtual machines, garbage collection and memory management, compiler construction</li>
-<li>Concurrent systems, multicore programming</li>
-<li>Operating systems, virtualization</li>
+  <li>Virtual machines, garbage collection and memory management, compiler construction</li>
+  <li>Concurrent systems, multicore programming</li>
+  <li>Operating systems, virtualization</li>
 </ul>
 
 <p>
-I received my PhD in December 2015 at the Department of Computer Sciences at the <a href="http://www.uni-salzburg.at/">University of Salzburg</a>. My advisor was <a href="http://cs.uni-salzburg.at/~ck">Christoph Kirsch</a>; my co-advisor was <a href="http://cs.uni-salzburg.at/~anas">Ana Sokolova</a>. Google generously supported my PhD through the <a href="https://ai.google/research/outreach/phd-fellowship/recipients/?category=2014">2014 Google PhD Fellowship</a> in Concurrent Systems.
+  <strong>Publications:</strong> See <a href="https://dblp.org/pid/71/9697.html">DBLP</a>
 </p>
 
 <p>
-<strong>Publications:</strong> See <a href="http://www.informatik.uni-trier.de/~ley/pers/hd/l/Lippautz:Michael.html">DBLP</a>
+Other sites you can find me on:
 </p>
+<ul>
+  <li><a href="https://twitter.com/mlippautz">Twitter</a></li>
+  <li><a href="https://github.com/mlippautz">GitHub</a></li>
+</ul>
 
-<center>
-<p style="font-size:small;">&copy; Michael Lippautz 2012-2018 | latest amendment: 2018-09-03</p>
-</center>
+<footer>
+  &copy; Michael Lippautz 2012-<span id="copy-end"></span> | latest modified: <span id="last-modified"></span>
+</footer>
 
 </body>
 </html>

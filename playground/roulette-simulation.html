@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roulette Simulator: Die Grüne 0 & der Hausvorteil</title>
+  <style>
+    :root {
+      --bg: #0b1323;
+      --card: #131e33;
+      --card-border: #1e2f4f;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --green: #10b981;
+      --red: #ef4444;
+      --gold: #f59e0b;
+      --blue: #38bdf8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      line-height: 1.4;
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .header-title h1 { font-size: 1.3rem; font-weight: 800; color: #fff; }
+    .header-title p { font-size: 0.82rem; color: var(--muted); }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      padding: 9px 14px;
+      transition: opacity 0.15s, transform 0.05s;
+    }
+    button:active { transform: scale(0.98); }
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-amber { background: #d97706; color: #fff; }
+    .btn-gray { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+    .btn-reset { background: #dc2626; color: #fff; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 840px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+    }
+
+    /* Rad */
+    .wheel-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .wheel-wrapper {
+      position: relative;
+      width: 230px;
+      height: 230px;
+    }
+    canvas#wheelCanvas {
+      width: 230px;
+      height: 230px;
+      border-radius: 50%;
+      box-shadow: 0 0 24px rgba(0,0,0,0.6);
+    }
+    .pointer {
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 11px solid transparent;
+      border-right: 11px solid transparent;
+      border-top: 18px solid var(--gold);
+      z-index: 10;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    }
+
+    .result-badge {
+      min-height: 40px;
+      width: 100%;
+      background: #0d1627;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 100%;
+    }
+
+    /* Tresor */
+    .vault-wrapper {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .vault-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .vault-amount {
+      font-size: 2.3rem;
+      font-weight: 900;
+      color: var(--gold);
+      line-height: 1.1;
+      margin-top: 4px;
+    }
+    .vault-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .stat-cell {
+      background: #0d1627;
+      border: 1px solid #1a273e;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .stat-cell .lbl { font-size: 0.74rem; color: var(--muted); }
+    .stat-cell .val { font-size: 1.05rem; font-weight: 800; margin-top: 2px; }
+
+    /* Balken 100 Spieler */
+    .bars-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 190px;
+      background: #090e17;
+      border-radius: 8px;
+      border: 1px solid #1a273e;
+      overflow: hidden;
+      cursor: crosshair;
+    }
+    canvas#barsCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Tooltip für Spieler-Hover */
+    #playerTooltip {
+      position: absolute;
+      display: none;
+      pointer-events: none;
+      background: #1e293b;
+      border: 1px solid #38bdf8;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      z-index: 50;
+      transform: translate(-50%, -110%);
+      white-space: nowrap;
+    }
+    #playerTooltip .tt-title { font-weight: bold; color: #fff; margin-bottom: 2px; }
+    #playerTooltip .tt-val { font-weight: 800; font-size: 0.95rem; }
+
+    /* Diagramm */
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 250px;
+      margin-top: 10px;
+    }
+    canvas#chartCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .toggles {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .toggles button {
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      background: #1e293b;
+      color: var(--muted);
+    }
+    .toggles button.active {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .legend-row {
+      display: flex;
+      gap: 16px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      align-items: center;
+      margin-top: 6px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 999;
+    }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      max-width: 520px;
+      width: 100%;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .modal h3 { margin-bottom: 12px; color: #fff; }
+    .modal p { font-size: 0.9rem; color: #cbd5e1; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-title">
+        <h1>Roulette Simulator: Die Grüne 0 & der Hausvorteil</h1>
+        <p>100 Teilnehmer setzen jede Runde je 5 € auf Rot oder Schwarz (Unendlich Guthaben)</p>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-gray" id="btnHelp">💡 Erklärung</button>
+        <button class="btn-reset" id="btnResetAll">Statistiken zurücksetzen</button>
+      </div>
+    </header>
+
+    <div class="grid-2">
+      <!-- Rad & Bedienung -->
+      <div class="card wheel-box">
+        <div class="wheel-wrapper">
+          <div class="pointer"></div>
+          <canvas id="wheelCanvas" width="460" height="460"></canvas>
+        </div>
+        <div id="resultBadge" class="result-badge">Bereit zum Drehen</div>
+        <div class="actions-grid">
+          <button id="btnSpin1" class="btn-primary">1 Runde drehen</button>
+          <button id="btnSpin100" class="btn-amber">100 Runden</button>
+        </div>
+      </div>
+
+      <!-- Casino Tresor -->
+      <div class="card vault-wrapper">
+        <div class="vault-heading">
+          <div>
+            <div style="font-size:0.85rem; color:var(--muted)">🏦 Casino-Tresor (Reingewinn der Bank)</div>
+            <div id="vaultTotal" class="vault-amount">+0 €</div>
+          </div>
+          <span style="font-size:2rem;">💰</span>
+        </div>
+
+        <div class="vault-stats">
+          <div class="stat-cell">
+            <div class="lbl">Gespielte Runden</div>
+            <div id="statRounds" class="val">0</div>
+          </div>
+          <div class="stat-cell">
+            <div class="lbl">Bank-Vorteil (Real)</div>
+            <div id="statEdgeReal" class="val" style="color:var(--gold);">0.00%</div>
+          </div>
+          <div class="stat-cell">
+            <div class="lbl">Theorie (1 / 37)</div>
+            <div class="val" style="color:var(--green);">2.70%</div>
+          </div>
+          <div class="stat-cell">
+            <div class="lbl">Grüne 0 Treffer</div>
+            <div id="statZeros" class="val">0</div>
+          </div>
+          <div class="stat-cell">
+            <div class="lbl">Spieler im Plus</div>
+            <div id="statWinners" class="val" style="color:var(--green);">0</div>
+          </div>
+          <div class="stat-cell">
+            <div class="lbl">Spieler im Minus</div>
+            <div id="statLosers" class="val" style="color:var(--red);">0</div>
+          </div>
+        </div>
+
+        <div style="background:#090e17; padding:8px 12px; border-radius:6px; font-size:0.8rem; color:var(--muted); border:1px solid #1a273e;">
+          <strong>Regel:</strong> Bei <strong>Grün 0</strong> verlieren alle 100 Spieler gleichzeitig 5 € an die Bank (+500 € für das Casino).
+        </div>
+      </div>
+    </div>
+
+    <!-- 100 Spieler Balken mit Sortier-Umschalter -->
+    <div class="card">
+      <div class="bars-header">
+        <div>
+          <strong>100 Spieler Kontostände (Netto P&L)</strong>
+          <span style="font-size:0.8rem; color:var(--muted); margin-left:8px;">Balken berühren/hovern für Spieler-Details</span>
+        </div>
+        <div class="toggles">
+          <span style="font-size:0.75rem; color:var(--muted); margin-right:4px;">Ansicht:</span>
+          <button id="btnSortPlayer" class="active">Nach Spieler-Nr.</button>
+          <button id="btnSortRank">Nach Rangliste</button>
+        </div>
+      </div>
+      <div class="canvas-container" id="barsContainer">
+        <canvas id="barsCanvas"></canvas>
+        <div id="playerTooltip">
+          <div class="tt-title" id="ttTitle">Spieler #1</div>
+          <div>Kontostand: <span class="tt-val" id="ttVal">0 €</span></div>
+          <div id="ttBet" style="color:var(--muted); font-size:0.75rem; margin-top:2px;">Letzte Wette: -</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historienverlauf: Bank vs Spieler (gleitende 500 Runden) -->
+    <div class="card">
+      <div class="bars-header">
+        <strong id="chartHeading">Y-Achse: Hausvorteil & Spielerquote (%)</strong>
+        <div class="toggles">
+          <span id="windowBadge" style="font-size:0.75rem; color:var(--muted); margin-right:8px;">Runde 0 bis 0</span>
+          <button id="btnTogglePercent" class="active">Quote (%)</button>
+          <button id="btnToggleEuro">Euro (€)</button>
+        </div>
+      </div>
+
+      <div class="legend-row">
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--gold);"></div>
+          <span><strong>Bank / Casino</strong></span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--blue);"></div>
+          <span><strong>Alle 100 Spieler (Summe)</strong></span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--green); border-radius: 2px;"></div>
+          <span>Theorie (±2,70%)</span>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="chartCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="helpModal" class="modal-backdrop">
+    <div class="modal">
+      <h3>Warum verliert man auf Dauer?</h3>
+      <p>Beim europäischen Roulette gibt es 37 Zahlen: <strong>18 Rote</strong>, <strong>18 Schwarze</strong> und <strong>1 Grüne Null</strong>.</p>
+      <p>Setzt man 5 € auf Rot, hat man nur 18 von 37 Gewinnchancen (~48,65%). Die Bank gewinnt bei Schwarz und bei Grün 0 (19 von 37 Chancen ~51,35%).</p>
+      <p>Der rechnerische Vorteil der Bank beträgt exakt <strong>1 / 37 ≈ 2,70%</strong>.</p>
+      <p>Weil alle Gewinne der Bank direkt aus den Einsätzen der Spieler stammen, verläuft die Kurve aller 100 Spieler spiegelbildlich ins Minus.</p>
+      <button id="btnCloseModal" class="btn-primary" style="width:100%; margin-top:10px;">Verstanden!</button>
+    </div>
+  </div>
+
+  <script>
+    const WHEEL_NUMS = [
+      0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10,
+      5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
+    ];
+    const RED_NUMS = new Set([32, 19, 21, 25, 34, 27, 36, 30, 23, 5, 16, 1, 14, 9, 18, 7, 12, 3]);
+
+    const MAX_HISTORY = 500;
+    const PLAYERS_COUNT = 100;
+    const BET_AMOUNT = 5;
+
+    // Web Audio Synthesizer
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
+    function playClick() {
+      try {
+        const ctx = getAudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(450, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.03);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.03);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.03);
+      } catch(e) {}
+    }
+    function playWin() {
+      try {
+        const ctx = getAudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      } catch(e) {}
+    }
+    function playZeroAlarm() {
+      try {
+        const ctx = getAudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(440, ctx.currentTime + 0.15);
+        osc.frequency.linearRampToValueAtTime(220, ctx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      } catch(e) {}
+    }
+
+    // Spieler-Objekt-Struktur
+    let state = {
+      rounds: 0,
+      zerosHit: 0,
+      players: Array.from({ length: PLAYERS_COUNT }, (_, i) => ({
+        id: i + 1,
+        balance: 0,
+        lastBet: 'red',
+        lastWon: false
+      })),
+      casinoVault: 0,
+      history: [{ round: 0, bankEdge: 0, playerEdge: 0, casinoEuro: 0, playersEuro: 0 }],
+      chartMode: 'percent', // 'percent' | 'euro'
+      sortMode: 'player',   // 'player' | 'rank'
+      wheelAngle: 0,
+      isSpinning: false,
+      hoveredIndex: -1
+    };
+
+    const wheelCanvas = document.getElementById('wheelCanvas');
+    const wheelCtx = wheelCanvas.getContext('2d');
+    const barsCanvas = document.getElementById('barsCanvas');
+    const barsCtx = barsCanvas.getContext('2d');
+    const chartCanvas = document.getElementById('chartCanvas');
+    const chartCtx = chartCanvas.getContext('2d');
+    const barsContainer = document.getElementById('barsContainer');
+    const playerTooltip = document.getElementById('playerTooltip');
+    const ttTitle = document.getElementById('ttTitle');
+    const ttVal = document.getElementById('ttVal');
+    const ttBet = document.getElementById('ttBet');
+
+    const vaultTotalEl = document.getElementById('vaultTotal');
+    const statRoundsEl = document.getElementById('statRounds');
+    const statEdgeRealEl = document.getElementById('statEdgeReal');
+    const statZerosEl = document.getElementById('statZeros');
+    const statWinnersEl = document.getElementById('statWinners');
+    const statLosersEl = document.getElementById('statLosers');
+    const resultBadgeEl = document.getElementById('resultBadge');
+    const windowBadgeEl = document.getElementById('windowBadge');
+    const chartHeadingEl = document.getElementById('chartHeading');
+
+    function getColor(num) {
+      if (num === 0) return 'green';
+      return RED_NUMS.has(num) ? 'red' : 'black';
+    }
+
+    function init() {
+      drawWheel();
+      resizeCanvases();
+      window.addEventListener('resize', () => {
+        resizeCanvases();
+        renderAll();
+      });
+
+      setupHoverListener();
+      renderAll();
+    }
+
+    function resizeCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+      const bRect = barsCanvas.getBoundingClientRect();
+      barsCanvas.width = bRect.width * dpr;
+      barsCanvas.height = bRect.height * dpr;
+
+      const cRect = chartCanvas.getBoundingClientRect();
+      chartCanvas.width = cRect.width * dpr;
+      chartCanvas.height = cRect.height * dpr;
+    }
+
+    function drawWheel() {
+      const w = wheelCanvas.width;
+      const h = wheelCanvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const radius = cx - 12;
+      const slice = (Math.PI * 2) / 37;
+
+      wheelCtx.clearRect(0, 0, w, h);
+      wheelCtx.save();
+      wheelCtx.translate(cx, cy);
+      wheelCtx.rotate(state.wheelAngle);
+
+      for (let i = 0; i < 37; i++) {
+        const num = WHEEL_NUMS[i];
+        const col = getColor(num);
+        const a1 = i * slice;
+        const a2 = (i + 1) * slice;
+
+        wheelCtx.beginPath();
+        wheelCtx.moveTo(0, 0);
+        wheelCtx.arc(0, 0, radius, a1, a2);
+        wheelCtx.closePath();
+
+        wheelCtx.fillStyle = (col === 'green') ? '#10b981' : (col === 'red' ? '#dc2626' : '#1e293b');
+        wheelCtx.fill();
+        wheelCtx.strokeStyle = '#0b1320';
+        wheelCtx.lineWidth = 1.5;
+        wheelCtx.stroke();
+
+        wheelCtx.save();
+        wheelCtx.rotate(a1 + slice / 2);
+        wheelCtx.fillStyle = '#fff';
+        wheelCtx.font = 'bold 13px system-ui';
+        wheelCtx.textAlign = 'right';
+        wheelCtx.fillText(num.toString(), radius - 10, 5);
+        wheelCtx.restore();
+      }
+
+      wheelCtx.beginPath();
+      wheelCtx.arc(0, 0, radius * 0.45, 0, Math.PI * 2);
+      wheelCtx.fillStyle = '#0f172a';
+      wheelCtx.fill();
+      wheelCtx.strokeStyle = '#334155';
+      wheelCtx.lineWidth = 4;
+      wheelCtx.stroke();
+
+      wheelCtx.restore();
+    }
+
+    function executeRound() {
+      const pocketIdx = Math.floor(Math.random() * 37);
+      const outcomeNum = WHEEL_NUMS[pocketIdx];
+      const outcomeColor = getColor(outcomeNum);
+
+      let deltaBank = 0;
+
+      for (let i = 0; i < PLAYERS_COUNT; i++) {
+        const bet = Math.random() < 0.5 ? 'red' : 'black';
+        state.players[i].lastBet = bet;
+
+        if (outcomeColor === 'green') {
+          state.players[i].balance -= BET_AMOUNT;
+          state.players[i].lastWon = false;
+          deltaBank += BET_AMOUNT;
+        } else if (bet === outcomeColor) {
+          state.players[i].balance += BET_AMOUNT;
+          state.players[i].lastWon = true;
+          deltaBank -= BET_AMOUNT;
+        } else {
+          state.players[i].balance -= BET_AMOUNT;
+          state.players[i].lastWon = false;
+          deltaBank += BET_AMOUNT;
+        }
+      }
+
+      state.rounds++;
+      if (outcomeColor === 'green') {
+        state.zerosHit++;
+        playZeroAlarm();
+      } else {
+        playWin();
+      }
+
+      state.casinoVault += deltaBank;
+
+      const totalHandle = state.rounds * PLAYERS_COUNT * BET_AMOUNT;
+      const bankEdge = (state.casinoVault / totalHandle) * 100;
+      const playerEdge = -bankEdge;
+      const playersTotalEuro = -state.casinoVault;
+
+      state.history.push({
+        round: state.rounds,
+        bankEdge: bankEdge,
+        playerEdge: playerEdge,
+        casinoEuro: state.casinoVault,
+        playersEuro: playersTotalEuro
+      });
+
+      while (state.history.length > MAX_HISTORY) {
+        state.history.shift();
+      }
+
+      return { outcomeNum, outcomeColor };
+    }
+
+    function getCurrentDisplayPlayers() {
+      let arr = [...state.players];
+      if (state.sortMode === 'rank') {
+        arr.sort((a, b) => b.balance - a.balance);
+      }
+      return arr;
+    }
+
+    function renderAll() {
+      vaultTotalEl.textContent = (state.casinoVault >= 0 ? '+' : '') + state.casinoVault.toLocaleString('de-DE') + ' €';
+      vaultTotalEl.style.color = state.casinoVault >= 0 ? 'var(--gold)' : 'var(--red)';
+
+      statRoundsEl.textContent = state.rounds.toLocaleString('de-DE');
+      const totalHandle = state.rounds * PLAYERS_COUNT * BET_AMOUNT;
+      const edge = totalHandle > 0 ? (state.casinoVault / totalHandle) * 100 : 0;
+      statEdgeRealEl.textContent = edge.toFixed(2) + '%';
+      statZerosEl.textContent = state.zerosHit.toLocaleString('de-DE');
+
+      let wCount = 0, lCount = 0;
+      for (const p of state.players) {
+        if (p.balance > 0) wCount++;
+        else if (p.balance < 0) lCount++;
+      }
+      statWinnersEl.textContent = wCount;
+      statLosersEl.textContent = lCount;
+
+      renderBars();
+      renderChart();
+    }
+
+    function renderBars() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = barsCanvas.width;
+      const h = barsCanvas.height;
+      barsCtx.clearRect(0, 0, w, h);
+
+      const midY = h / 2;
+      barsCtx.strokeStyle = '#334155';
+      barsCtx.lineWidth = 1 * dpr;
+      barsCtx.beginPath();
+      barsCtx.moveTo(0, midY);
+      barsCtx.lineTo(w, midY);
+      barsCtx.stroke();
+
+      const displayList = getCurrentDisplayPlayers();
+
+      let maxVal = 50;
+      for (const p of displayList) {
+        if (Math.abs(p.balance) > maxVal) maxVal = Math.abs(p.balance);
+      }
+
+      const barW = (w / PLAYERS_COUNT) * 0.72;
+      const step = w / PLAYERS_COUNT;
+
+      for (let i = 0; i < PLAYERS_COUNT; i++) {
+        const p = displayList[i];
+        const val = p.balance;
+        const barH = (Math.abs(val) / maxVal) * (midY - 14 * dpr);
+        const x = i * step + (step - barW) / 2;
+
+        const isHovered = (i === state.hoveredIndex);
+
+        barsCtx.fillStyle = val > 0 ? '#10b981' : (val < 0 ? '#ef4444' : '#64748b');
+
+        if (val >= 0) {
+          barsCtx.fillRect(x, midY - barH, barW, Math.max(barH, 2 * dpr));
+          if (isHovered) {
+            barsCtx.strokeStyle = '#ffffff';
+            barsCtx.lineWidth = 2 * dpr;
+            barsCtx.strokeRect(x - 1, midY - barH - 1, barW + 2, Math.max(barH, 2 * dpr) + 2);
+          }
+        } else {
+          barsCtx.fillRect(x, midY, barW, Math.max(barH, 2 * dpr));
+          if (isHovered) {
+            barsCtx.strokeStyle = '#ffffff';
+            barsCtx.lineWidth = 2 * dpr;
+            barsCtx.strokeRect(x - 1, midY - 1, barW + 2, Math.max(barH, 2 * dpr) + 2);
+          }
+        }
+      }
+    }
+
+    function setupHoverListener() {
+      function updateHover(clientX, clientY) {
+        const rect = barsCanvas.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+
+        if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
+          state.hoveredIndex = -1;
+          playerTooltip.style.display = 'none';
+          renderBars();
+          return;
+        }
+
+        const step = rect.width / PLAYERS_COUNT;
+        const index = Math.floor(x / step);
+
+        if (index >= 0 && index < PLAYERS_COUNT) {
+          state.hoveredIndex = index;
+          const displayList = getCurrentDisplayPlayers();
+          const p = displayList[index];
+
+          playerTooltip.style.display = 'block';
+          playerTooltip.style.left = `${x}px`;
+          playerTooltip.style.top = `${Math.max(30, y)}px`;
+
+          const rankInfo = state.sortMode === 'rank' ? ` (Rang #${index + 1})` : '';
+          ttTitle.textContent = `Spieler #${p.id}${rankInfo}`;
+          ttVal.textContent = (p.balance >= 0 ? '+' : '') + p.balance + ' €';
+          ttVal.style.color = p.balance > 0 ? 'var(--green)' : (p.balance < 0 ? 'var(--red)' : '#fff');
+          
+          if (state.rounds > 0) {
+            const betColorText = p.lastBet === 'red' ? '🔴 Rot' : '⚫ Schwarz';
+            const resultText = p.lastWon ? '✅ Gewonnen (+5 €)' : '❌ Verloren (-5 €)';
+            ttBet.textContent = `Wette: ${betColorText} | ${resultText}`;
+          } else {
+            ttBet.textContent = 'Noch keine Runde gespielt';
+          }
+
+          renderBars();
+        }
+      }
+
+      barsCanvas.addEventListener('mousemove', (e) => updateHover(e.clientX, e.clientY));
+      barsCanvas.addEventListener('mouseleave', () => {
+        state.hoveredIndex = -1;
+        playerTooltip.style.display = 'none';
+        renderBars();
+      });
+
+      // Touch Unterstützung für Tablets/Smartphones
+      barsCanvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) {
+          updateHover(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+    }
+
+    function renderChart() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = chartCanvas.width;
+      const h = chartCanvas.height;
+      chartCtx.clearRect(0, 0, w, h);
+
+      if (state.history.length === 0) return;
+
+      const firstRound = state.history[0].round;
+      const lastRound = state.history[state.history.length - 1].round;
+      const span = Math.max(1, lastRound - firstRound);
+
+      windowBadgeEl.textContent = state.rounds <= MAX_HISTORY
+        ? `Runde 0 bis ${lastRound}`
+        : `Gleitendes Fenster (R. ${firstRound} bis ${lastRound})`;
+
+      const padL = 72 * dpr;
+      const padR = 24 * dpr;
+      const padT = 20 * dpr;
+      const padB = 34 * dpr;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+
+      const getX = (round) => padL + ((round - firstRound) / span) * plotW;
+
+      let bound = state.chartMode === 'percent' ? 6 : 200;
+      for (const d of state.history) {
+        if (state.chartMode === 'percent') {
+          const maxE = Math.max(Math.abs(d.bankEdge), Math.abs(d.playerEdge));
+          if (maxE > bound - 1) bound = maxE + 1.5;
+        } else {
+          const maxEur = Math.max(Math.abs(d.casinoEuro), Math.abs(d.playersEuro));
+          if (maxEur > bound - 50) bound = maxEur + 100;
+        }
+      }
+
+      const minY = -bound;
+      const maxY = bound;
+      const getY = (val) => padT + plotH - ((val - minY) / (maxY - minY)) * plotH;
+
+      // Horizontale Hilfslinien
+      chartCtx.strokeStyle = '#1e293b';
+      chartCtx.fillStyle = '#94a3b8';
+      chartCtx.font = `${10 * dpr}px system-ui`;
+      chartCtx.textAlign = 'right';
+
+      const steps = 6;
+      for (let i = 0; i <= steps; i++) {
+        const val = minY + (i / steps) * (maxY - minY);
+        const y = getY(val);
+        chartCtx.beginPath();
+        chartCtx.moveTo(padL, y);
+        chartCtx.lineTo(w - padR, y);
+        chartCtx.stroke();
+
+        const label = state.chartMode === 'percent' ? val.toFixed(1) + '%' : Math.round(val) + ' €';
+        chartCtx.fillText(label, padL - 8 * dpr, y + 3 * dpr);
+      }
+
+      // Nulllinie
+      const y0 = getY(0);
+      chartCtx.strokeStyle = '#334155';
+      chartCtx.lineWidth = 1.5 * dpr;
+      chartCtx.beginPath();
+      chartCtx.moveTo(padL, y0);
+      chartCtx.lineTo(w - padR, y0);
+      chartCtx.stroke();
+
+      // X-Achsenticks
+      chartCtx.textAlign = 'center';
+      const xSteps = 5;
+      for (let i = 0; i <= xSteps; i++) {
+        const rVal = Math.round(firstRound + (i / xSteps) * span);
+        const x = getX(rVal);
+        chartCtx.beginPath();
+        chartCtx.moveTo(x, padT);
+        chartCtx.lineTo(x, padT + plotH);
+        chartCtx.stroke();
+        chartCtx.fillText(`R.${rVal}`, x, h - 10 * dpr);
+      }
+
+      chartCtx.fillStyle = '#64748b';
+      chartCtx.textAlign = 'right';
+      chartCtx.fillText('X-Achse: Gespielte Runden ➔', w - padR, h - 10 * dpr);
+
+      // Referenzlinien ±2.70%
+      if (state.chartMode === 'percent') {
+        const yBankTheory = getY(2.70);
+        const yPlayerTheory = getY(-2.70);
+
+        chartCtx.setLineDash([5 * dpr, 4 * dpr]);
+        chartCtx.strokeStyle = '#10b981';
+        chartCtx.lineWidth = 1.2 * dpr;
+
+        chartCtx.beginPath();
+        chartCtx.moveTo(padL, yBankTheory);
+        chartCtx.lineTo(w - padR, yBankTheory);
+        chartCtx.stroke();
+
+        chartCtx.beginPath();
+        chartCtx.moveTo(padL, yPlayerTheory);
+        chartCtx.lineTo(w - padR, yPlayerTheory);
+        chartCtx.stroke();
+        chartCtx.setLineDash([]);
+
+        chartCtx.fillStyle = '#10b981';
+        chartCtx.textAlign = 'left';
+        chartCtx.fillText('+2.70% (Bank)', padL + 6 * dpr, yBankTheory - 4 * dpr);
+        chartCtx.fillText('-2.70% (Spieler)', padL + 6 * dpr, yPlayerTheory + 12 * dpr);
+      }
+
+      // 1. SPIELER-LINIE (BLAU)
+      chartCtx.beginPath();
+      chartCtx.lineWidth = 2.2 * dpr;
+      chartCtx.strokeStyle = '#38bdf8';
+      for (let i = 0; i < state.history.length; i++) {
+        const d = state.history[i];
+        const val = state.chartMode === 'percent' ? d.playerEdge : d.playersEuro;
+        const x = getX(d.round);
+        const y = getY(val);
+        if (i === 0) chartCtx.moveTo(x, y);
+        else chartCtx.lineTo(x, y);
+      }
+      chartCtx.stroke();
+
+      // 2. BANK-LINIE (GOLD)
+      chartCtx.beginPath();
+      chartCtx.lineWidth = 2.2 * dpr;
+      chartCtx.strokeStyle = '#fbbf24';
+      for (let i = 0; i < state.history.length; i++) {
+        const d = state.history[i];
+        const val = state.chartMode === 'percent' ? d.bankEdge : d.casinoEuro;
+        const x = getX(d.round);
+        const y = getY(val);
+        if (i === 0) chartCtx.moveTo(x, y);
+        else chartCtx.lineTo(x, y);
+      }
+      chartCtx.stroke();
+    }
+
+    // Handlers
+    document.getElementById('btnSpin1').addEventListener('click', () => {
+      if (state.isSpinning) return;
+      state.isSpinning = true;
+
+      const { outcomeNum, outcomeColor } = executeRound();
+
+      const startA = state.wheelAngle;
+      const targetA = startA + Math.PI * 4 + Math.random() * 2;
+      const startTime = performance.now();
+      const dur = 600;
+
+      let lastTickAngle = startA;
+      function frame(t) {
+        const p = Math.min(1, (t - startTime) / dur);
+        state.wheelAngle = startA + (targetA - startA) * (1 - Math.pow(1 - p, 3));
+        drawWheel();
+
+        if (state.wheelAngle - lastTickAngle > 0.3) {
+          playClick();
+          lastTickAngle = state.wheelAngle;
+        }
+
+        if (p < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          state.isSpinning = false;
+          resultBadgeEl.textContent = `${outcomeNum} (${outcomeColor.toUpperCase()})`;
+          resultBadgeEl.style.color = outcomeColor === 'green' ? '#10b981' : (outcomeColor === 'red' ? '#ef4444' : '#f1f5f9');
+          renderAll();
+        }
+      }
+      requestAnimationFrame(frame);
+    });
+
+    document.getElementById('btnSpin100').addEventListener('click', () => {
+      if (state.isSpinning) return;
+      let last;
+      for (let i = 0; i < 100; i++) {
+        last = executeRound();
+      }
+      resultBadgeEl.textContent = `${last.outcomeNum} (${last.outcomeColor.toUpperCase()})`;
+      resultBadgeEl.style.color = last.outcomeColor === 'green' ? '#10b981' : (last.outcomeColor === 'red' ? '#ef4444' : '#f1f5f9');
+      renderAll();
+    });
+
+    document.getElementById('btnResetAll').addEventListener('click', () => {
+      state.rounds = 0;
+      state.zerosHit = 0;
+      state.players.forEach(p => {
+        p.balance = 0;
+        p.lastWon = false;
+      });
+      state.casinoVault = 0;
+      state.history = [{ round: 0, bankEdge: 0, playerEdge: 0, casinoEuro: 0, playersEuro: 0 }];
+      state.hoveredIndex = -1;
+      playerTooltip.style.display = 'none';
+      resultBadgeEl.textContent = 'Bereit zum Drehen';
+      resultBadgeEl.style.color = 'var(--text)';
+      renderAll();
+    });
+
+    // Umschalter: Prozent vs Euro
+    const toggleP = document.getElementById('btnTogglePercent');
+    const toggleE = document.getElementById('btnToggleEuro');
+    toggleP.addEventListener('click', () => {
+      state.chartMode = 'percent';
+      toggleP.classList.add('active');
+      toggleE.classList.remove('active');
+      chartHeadingEl.textContent = 'Y-Achse: Hausvorteil & Spielerquote (%)';
+      renderChart();
+    });
+    toggleE.addEventListener('click', () => {
+      state.chartMode = 'euro';
+      toggleE.classList.add('active');
+      toggleP.classList.remove('active');
+      chartHeadingEl.textContent = 'Y-Achse: Reingewinn Bank vs. Spieler (€)';
+      renderChart();
+    });
+
+    // Umschalter: Spieler-Nr vs Rangliste
+    const btnSortPlayer = document.getElementById('btnSortPlayer');
+    const btnSortRank = document.getElementById('btnSortRank');
+    btnSortPlayer.addEventListener('click', () => {
+      state.sortMode = 'player';
+      btnSortPlayer.classList.add('active');
+      btnSortRank.classList.remove('active');
+      renderBars();
+    });
+    btnSortRank.addEventListener('click', () => {
+      state.sortMode = 'rank';
+      btnSortRank.classList.add('active');
+      btnSortPlayer.classList.remove('active');
+      renderBars();
+    });
+
+    const modal = document.getElementById('helpModal');
+    document.getElementById('btnHelp').addEventListener('click', () => modal.style.display = 'flex');
+    document.getElementById('btnCloseModal').addEventListener('click', () => modal.style.display = 'none');
+
+    init();
+  </script>
+</body>
+</html>
